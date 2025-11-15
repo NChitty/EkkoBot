@@ -37,23 +37,50 @@ func CreateTrackCommand(q *db.Queries) {
 			tag := i.ApplicationCommandData().GetOption("tag").StringValue()
 			ctx := context.Background()
 
-			_, err := q.CreateSummoner(ctx, db.CreateSummonerParams{
-				Name:       pgtype.Text{String: name, Valid: true},
-				Tagline:    pgtype.Text{String: tag, Valid: true},
-				Playeruuid: pgtype.Text{String: "nonsense", Valid: true},
+			slog.Debug("Checking if already tracking summoner", "name", name, "tag", tag)
+
+			summoner, err := q.GetSummonerByNameAndTag(ctx, db.GetSummonerByNameAndTagParams{
+				Name:    pgtype.Text{String: name, Valid: true},
+				Tagline: pgtype.Text{String: tag, Valid: true},
 			})
 
-			if err != nil {
-				slog.Error(
-					"Could not insert new summoner",
-					"summoner", fmt.Sprintf("%s#%s", name, tag),
-					"error", err,
-				)
+			// brand new summoner
+			if err != nil && err.Error() == "no rows in result set" {
+				summoner, err = q.CreateSummoner(ctx, db.CreateSummonerParams{
+					Name:       pgtype.Text{String: name, Valid: true},
+					Tagline:    pgtype.Text{String: tag, Valid: true},
+					Playeruuid: pgtype.Text{String: "nonsense", Valid: true},
+				})
+
+				slog.Info("Started tracking new summoner", "summoner", summoner)
+
+				if err != nil {
+					slog.Error(
+						"Could not insert new summoner",
+						"summoner", fmt.Sprintf("%s#%s", name, tag),
+						"error", err,
+					)
+
+					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Failed to add your summoner, check the name and tag and try again.",
+						},
+					})
+					if err != nil {
+						slog.Error(
+							"Could not respond to interaction",
+							"command", command.Name,
+							"error", err,
+						)
+					}
+					return
+				}
 
 				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Failed to add your summoner, check the name and tag and try again.",
+						Content: "Added summoner, we will start tracking your GAINS",
 					},
 				})
 				if err != nil {
@@ -63,18 +90,37 @@ func CreateTrackCommand(q *db.Queries) {
 						"error", err,
 					)
 				}
-
 				return
 			}
 
+			// failed to check if summoner exists
+			if err != nil {
+				slog.Error("Could not check if summoner exists", "name", name, "tag", tag, "error", err)
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "We failed to check if we are already tracking your summoner.",
+					},
+				})
+				if err != nil {
+					slog.Error(
+						"Could not respond to interaction",
+						"command", command.Name,
+						"error", err,
+					)
+				}
+				return
+			}
+
+			slog.Debug("Summoner already exists")
 			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "Added summoner, we will start tracking your GAINS",
+					Content: "TODO: SEND CURRENT DATA, WE ARE ALREADY TRACKING",
 				},
 			})
 			if err != nil {
-				slog.Warn("Could not respond to interaction", "command", command.Name, "error", err)
+				slog.Error("Could not respond to interaction", "command", command.Name, "error", err)
 			}
 		})
 }
