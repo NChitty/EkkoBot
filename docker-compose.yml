@@ -2,8 +2,16 @@ services:
   bot:
     build:
       dockerfile: ./Dockerfile
+    develop:
+      watch:
+        - path: ./cmd/
+          action: rebuild
+        - path: ./db/
+          action: sync+restart
+          target: /app/db/
     environment:
       DISCORD_TOKEN_FILE: /run/secrets/discord_token
+      RIOT_API_TOKEN_FILE: /run/secrets/riot_api_token
       PGDATABASE: ekkobot
       PGHOST: db
       PGPASSFILE: /run/secrets/pg_pass_file
@@ -14,15 +22,18 @@ services:
         condition: service_started
     secrets:
       - discord_token
+      - riot_api_token
       - pg_pass_file
 
   db:
-    image: postgres
+    image: postgres:18.1
     environment:
       POSTGRES_DB: ekkobot
       POSTGRES_PASSWORD_FILE: /run/secrets/pg_pass
     secrets:
       - pg_pass
+    volumes:
+      - pg-data:/var/lib/postgresql
 
   adminer:
     image: adminer
@@ -30,9 +41,14 @@ services:
     ports:
       - 8080:8080
 
+volumes:
+  pg-data:
+
 secrets:
   discord_token:
     file: discord_token.secret
+  riot_api_token:
+    file: riot_api_token.secret
   pg_pass:
     file: pg_pass.secret
   pg_pass_file:

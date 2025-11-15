@@ -6,3 +6,7 @@ WHERE id = $1;
 INSERT INTO summoners (name, tagline, playerUuid)
 VALUES ($1, $2, $3)
 RETURNING *;
+
+-- name: GetSummonerByNameAndTag :one
+SELECT * FROM summoners
+WHERE name = $1 AND tagline = $2;

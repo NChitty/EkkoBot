@@ -51,3 +51,25 @@ func (q *Queries) GetSummoner(ctx context.Context, id int64) (Summoner, error) {
 	)
 	return i, err
 }
+
+const getSummonerByNameAndTag = `-- name: GetSummonerByNameAndTag :one
+SELECT id, name, tagline, playeruuid FROM summoners
+WHERE name = $1 AND tagline = $2
+`
+
+type GetSummonerByNameAndTagParams struct {
+	Name    pgtype.Text
+	Tagline pgtype.Text
+}
+
+func (q *Queries) GetSummonerByNameAndTag(ctx context.Context, arg GetSummonerByNameAndTagParams) (Summoner, error) {
+	row := q.db.QueryRow(ctx, getSummonerByNameAndTag, arg.Name, arg.Tagline)
+	var i Summoner
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Tagline,
+		&i.Playeruuid,
+	)
+	return i, err
+}
