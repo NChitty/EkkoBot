@@ -1,0 +1,39 @@
+services:
+  bot:
+    build:
+      dockerfile: ./Dockerfile
+    environment:
+      DISCORD_TOKEN_FILE: /run/secrets/discord_token
+      PGDATABASE: ekkobot
+      PGHOST: db
+      PGPASSFILE: /run/secrets/pg_pass_file
+      PGSSLMODE: disable
+      PGUSER: postgres
+    depends_on:
+      db:
+        condition: service_started
+    secrets:
+      - discord_token
+      - pg_pass_file
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: ekkobot
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_pass
+    secrets:
+      - pg_pass
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+secrets:
+  discord_token:
+    file: discord_token.secret
+  pg_pass:
+    file: pg_pass.secret
+  pg_pass_file:
+    file: pg_pass_file.secret
