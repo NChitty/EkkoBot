@@ -2,7 +2,12 @@ package riot
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -80,4 +85,73 @@ func (c *Client) applyEditors(ctx context.Context, req *http.Request, additional
 		}
 	}
 	return nil
+}
+
+type RiotClientInterface interface {
+	GetAccountByRiotId(ctx context.Context, params AccountByRiotIdRequestParams) (AccountByRiotIdResponse, error)
+
+	GetQueueEntriesByPlayerUuid(ctx context.Context, params QueueEntriesByPlayerUuidParams) ([]*QueueResponse, error)
+}
+
+func (c *Client) GetAccountByRiotId(
+	ctx context.Context,
+	params AccountByRiotIdRequestParams,
+) (*AccountByRiotIdResponse, error) {
+	var err error
+
+	serverURL, err := url.Parse(c.Server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("riot/account/v1/accounts/by-riot-id/%s/%s", params.Name, params.Tagline)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, c.RequestEditors); err != nil {
+		return nil, err
+	}
+
+	response, err :=  c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	bodyBytes, err := io.ReadAll(response.Body)
+	defer func() { _ = response.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != 200 {
+		var dest Status
+		err = json.Unmarshal(bodyBytes, &dest)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, errors.New(fmt.Sprintf("HTTP StatusCode: %d - %s", dest.StatusCode, dest.Message))
+	}
+
+	var dest AccountByRiotIdResponse
+	err = json.Unmarshal(bodyBytes, &dest)
+
+	if err != nil {
+	  return nil, err
+	}
+
+	return &dest, nil
+
 }
