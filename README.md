@@ -16,4 +16,6 @@
     - [x] docker secrets (discord token + postgres secrets)
 - [x] Migrations
 - [x] Capable of registering commands
-- [ ] Postgres connection (sqlc)
+- [x] Postgres connection (sqlc)
+- [ ] Riot API integration
+- [ ] Setup command
