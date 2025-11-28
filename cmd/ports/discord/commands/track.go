@@ -6,11 +6,12 @@ import (
 	"log/slog"
 
 	"github.com/NChitty/lol-discord-bot/cmd/ports/db"
+	"github.com/NChitty/lol-discord-bot/cmd/ports/riot"
 	"github.com/bwmarrin/discordgo"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func CreateTrackCommand(q *db.Queries) {
+func CreateTrackCommand(q *db.Queries, client riot.Client) {
 	command := &discordgo.ApplicationCommand{
 		Name:        "track",
 		Description: "Start tracking the LP changes of a summoner.",
@@ -46,10 +47,19 @@ func CreateTrackCommand(q *db.Queries) {
 
 			// brand new summoner
 			if err != nil && err.Error() == "no rows in result set" {
+				res, err := client.GetAccountByRiotId(ctx, riot.AccountByRiotIdRequestParams{
+					Name: name,
+					Tagline: tag,
+				})
+				if err != nil {
+					slog.Error("Could not lookup summoner", "name", name, "tag", tag, "error", err)
+
+					return
+				}
 				summoner, err = q.CreateSummoner(ctx, db.CreateSummonerParams{
 					Name:       pgtype.Text{String: name, Valid: true},
 					Tagline:    pgtype.Text{String: tag, Valid: true},
-					Playeruuid: pgtype.Text{String: "nonsense", Valid: true},
+					Playeruuid: pgtype.Text{String: res.PlayerUuid, Valid: true},
 				})
 
 				slog.Info("Started tracking new summoner", "summoner", summoner)

@@ -1,15 +1,39 @@
 package riot
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
+
+var riotToken string
+
+func init() {
+	fileName, isPresent := os.LookupEnv("RIOT_API_TOKEN_FILE")
+	if !isPresent {
+		slog.Error("RIOT_API_TOKEN_FILE environment variable is unset.")
+		os.Exit(1)
+	}
+	if fileName == "" {
+		slog.Error("RIOT_API_TOKEN_FILE environment variable is empty.")
+		os.Exit(1)
+	}
+
+	riotApiTokenFile, err := os.Open(fileName)
+	if err == nil {
+		scanner := bufio.NewScanner(riotApiTokenFile)
+		scanner.Scan()
+		riotToken = scanner.Text()
+	}
+}
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -73,6 +97,11 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 	}
 }
 
+func WithRiotTokenHeader(ctx context.Context, req *http.Request) error {
+	req.Header.Add("X-Riot-Token", riotToken)
+	return nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -93,13 +122,14 @@ type RiotClientInterface interface {
 	GetQueueEntriesByPlayerUuid(ctx context.Context, params QueueEntriesByPlayerUuidParams) ([]*QueueResponse, error)
 }
 
-func (c *Client) GetAccountByRiotId(
+func buildNewGetAccountByRiotIdRequest(
 	ctx context.Context,
+	server string,
 	params AccountByRiotIdRequestParams,
-) (*AccountByRiotIdResponse, error) {
+) (*http.Request, error) {
 	var err error
 
-	serverURL, err := url.Parse(c.Server)
+	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
@@ -119,16 +149,12 @@ func (c *Client) GetAccountByRiotId(
 		return nil, err
 	}
 
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, c.RequestEditors); err != nil {
-		return nil, err
-	}
+	return req.WithContext(ctx), nil
+}
 
-	response, err :=  c.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
+func parseAccountByRiotIdResponse(
+	response *http.Response,
+) (*AccountByRiotIdResponse, error) {
 	bodyBytes, err := io.ReadAll(response.Body)
 	defer func() { _ = response.Body.Close() }()
 	if err != nil {
@@ -151,7 +177,26 @@ func (c *Client) GetAccountByRiotId(
 	if err != nil {
 	  return nil, err
 	}
-
 	return &dest, nil
+}
 
+func (c *Client) GetAccountByRiotId(
+	ctx context.Context,
+	params AccountByRiotIdRequestParams,
+) (*AccountByRiotIdResponse, error) {
+	req, err := buildNewGetAccountByRiotIdRequest(ctx, c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.applyEditors(ctx, req, c.RequestEditors); err != nil {
+		return nil, err
+	}
+
+	response, err :=  c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseAccountByRiotIdResponse(response)
 }
