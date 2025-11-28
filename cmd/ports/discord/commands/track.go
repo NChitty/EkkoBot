@@ -60,67 +60,22 @@ func CreateTrackCommand(q *db.Queries) {
 						"summoner", fmt.Sprintf("%s#%s", name, tag),
 						"error", err,
 					)
-
-					err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "Failed to add your summoner, check the name and tag and try again.",
-						},
-					})
-					if err != nil {
-						slog.Error(
-							"Could not respond to interaction",
-							"command", command.Name,
-							"error", err,
-						)
-					}
-					return
+					SendCommandResponse(s, i, command, "Failed to add your summoner, check the name and tag and try again.")
 				}
 
-				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Added summoner, we will start tracking your GAINS",
-					},
-				})
-				if err != nil {
-					slog.Error(
-						"Could not respond to interaction",
-						"command", command.Name,
-						"error", err,
-					)
-				}
+				SendCommandResponse(s, i, command, "Added summoner, we will start tracking your GAINS")
 				return
 			}
 
 			// failed to check if summoner exists
 			if err != nil {
 				slog.Error("Could not check if summoner exists", "name", name, "tag", tag, "error", err)
-				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "We failed to check if we are already tracking your summoner.",
-					},
-				})
-				if err != nil {
-					slog.Error(
-						"Could not respond to interaction",
-						"command", command.Name,
-						"error", err,
-					)
-				}
+
+				SendCommandResponse(s, i, command, "We failed to check if we are already tracking your summoner.")
 				return
 			}
 
 			slog.Debug("Summoner already exists")
-			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "TODO: SEND CURRENT DATA, WE ARE ALREADY TRACKING",
-				},
-			})
-			if err != nil {
-				slog.Error("Could not respond to interaction", "command", command.Name, "error", err)
-			}
+			SendCommandResponse(s, i, command, "TODO: SEND CURRENT DATA, WE ARE ALREADY TRACKING")
 		})
 }
