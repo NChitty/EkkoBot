@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"log/slog"
 	"os"
 	"os/signal"
 
+	"github.com/NChitty/lol-discord-bot/cmd/bot/environment"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/db"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/discord/commands"
 	"github.com/bwmarrin/discordgo"
@@ -34,29 +34,14 @@ func init() {
 	)
 	slog.SetDefault(logger)
 
-	fileName, isPresent := os.LookupEnv("DISCORD_TOKEN_FILE")
-	if !isPresent {
-		slog.Error("DISCORD_TOKEN_FILE environment variable is unset.")
-		os.Exit(1)
-	}
-	if fileName == "" {
-		slog.Error("DISCORD_TOKEN_FILE environment variable is empty.")
-		os.Exit(1)
-	}
-
-	discordKeyFile, err := os.Open(fileName)
-	if err == nil {
-		scanner := bufio.NewScanner(discordKeyFile)
-		scanner.Scan()
-		DiscordToken = scanner.Text()
-	}
+	DiscordToken = environment.GetEnvironmentFileValue("DISCORD_TOKEN_FILE")
 }
 
 func init() {
 	var err error
 	DiscordSession, err = discordgo.New("Bot " + DiscordToken)
 	if err != nil {
-		slog.Error("Could not create a discord session, check the DISCORD_TOKEN and try again.")
+		slog.Error("Could not create a discord session, check the DISCORD_TOKEN_FILE and try again.")
 		os.Exit(1)
 	}
 }
