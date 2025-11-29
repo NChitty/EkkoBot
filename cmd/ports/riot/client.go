@@ -3,18 +3,14 @@ package riot
 import (
 	"bufio"
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 )
 
 var riotToken string
+var RiotClient RiotClientInterface
 
 func init() {
 	fileName, isPresent := os.LookupEnv("RIOT_API_TOKEN_FILE")
@@ -33,6 +29,14 @@ func init() {
 		scanner.Scan()
 		riotToken = scanner.Text()
 	}
+}
+
+func init() {
+	client, err := NewClient("https://%s.api.riotgames.com/", WithRequestEditorFn(RiotTokenHeader))
+	if err != nil {
+		os.Exit(1)
+	}
+	RiotClient = client
 }
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
@@ -97,7 +101,7 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 	}
 }
 
-func WithRiotTokenHeader(ctx context.Context, req *http.Request) error {
+func RiotTokenHeader(ctx context.Context, req *http.Request) error {
 	req.Header.Add("X-Riot-Token", riotToken)
 	return nil
 }
@@ -117,67 +121,9 @@ func (c *Client) applyEditors(ctx context.Context, req *http.Request, additional
 }
 
 type RiotClientInterface interface {
-	GetAccountByRiotId(ctx context.Context, params AccountByRiotIdRequestParams) (AccountByRiotIdResponse, error)
+	GetAccountByRiotId(ctx context.Context, params AccountByRiotIdRequestParams) (*AccountByRiotIdResponse, error)
 
 	GetQueueEntriesByPlayerUuid(ctx context.Context, params QueueEntriesByPlayerUuidParams) ([]*QueueResponse, error)
-}
-
-func buildNewGetAccountByRiotIdRequest(
-	ctx context.Context,
-	server string,
-	params AccountByRiotIdRequestParams,
-) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("riot/account/v1/accounts/by-riot-id/%s/%s", params.Name, params.Tagline)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req.WithContext(ctx), nil
-}
-
-func parseAccountByRiotIdResponse(
-	response *http.Response,
-) (*AccountByRiotIdResponse, error) {
-	bodyBytes, err := io.ReadAll(response.Body)
-	defer func() { _ = response.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	if response.StatusCode != 200 {
-		var dest Status
-		err = json.Unmarshal(bodyBytes, &dest)
-		if err != nil {
-			return nil, err
-		}
-
-		return nil, errors.New(fmt.Sprintf("HTTP StatusCode: %d - %s", dest.StatusCode, dest.Message))
-	}
-
-	var dest AccountByRiotIdResponse
-	err = json.Unmarshal(bodyBytes, &dest)
-
-	if err != nil {
-	  return nil, err
-	}
-	return &dest, nil
 }
 
 func (c *Client) GetAccountByRiotId(
@@ -193,10 +139,31 @@ func (c *Client) GetAccountByRiotId(
 		return nil, err
 	}
 
-	response, err :=  c.Client.Do(req)
+	response, err := c.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	return parseAccountByRiotIdResponse(response)
+}
+
+func (c *Client) GetQueueEntriesByPlayerUuid(
+	ctx context.Context,
+	params QueueEntriesByPlayerUuidParams,
+) ([]*QueueResponse, error) {
+	req, err := buildNewGetQueueEntriesByPlayerUuidRequest(ctx, c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.applyEditors(ctx, req, c.RequestEditors); err != nil {
+		return nil, err
+	}
+
+	response, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseQueueEntriesByPlayerUuidResponse(response)
 }

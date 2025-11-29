@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func CreateTrackCommand(q *db.Queries, client riot.Client) {
+func CreateTrackCommand(q *db.Queries, client riot.RiotClientInterface) {
 	command := &discordgo.ApplicationCommand{
 		Name:        "track",
 		Description: "Start tracking the LP changes of a summoner.",

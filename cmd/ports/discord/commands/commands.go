@@ -14,6 +14,10 @@ func init() {
 
 type CommandHandler func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
+type Command interface {
+	getCommand() CommandHandler
+}
+
 type commandRegistry struct {
 	commands           []*discordgo.ApplicationCommand
 	commandHandlers    map[string]CommandHandler

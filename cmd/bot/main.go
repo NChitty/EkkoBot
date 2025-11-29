@@ -9,6 +9,7 @@ import (
 	"github.com/NChitty/lol-discord-bot/cmd/bot/environment"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/db"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/discord/commands"
+	"github.com/NChitty/lol-discord-bot/cmd/ports/riot"
 	"github.com/bwmarrin/discordgo"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -83,7 +84,7 @@ func init() {
 
 func init() {
 	slog.Debug("Creating commands")
-	commands.CreateTrackCommand(Queries)
+	commands.CreateTrackCommand(Queries, riot.RiotClient)
 	commands.CommandRegistry.AddHandlers(DiscordSession)
 }
 
