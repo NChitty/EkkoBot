@@ -16,10 +16,11 @@
 4. Run the docker compose
 
 # WIP
-- [x] Docker + postgres
-    - [x] docker secrets (discord token + postgres secrets)
-- [x] Migrations
-- [x] Capable of registering commands
-- [x] Postgres connection (sqlc)
-- [ ] Riot API integration
-- [ ] Setup command
+- [ ] Clean up messaging
+    - [ ] Add embed to "track" command for W-L and current LP
+- [ ] Schedule for checking LP gains/losses
+    - [ ] Add guild column for message update
+    - [ ] Add column for last update
+    - [ ] Add table for most recent queue stats
+    - [ ] Display latest game stats
+- [ ] Deploy to docker swarm
