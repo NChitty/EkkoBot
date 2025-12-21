@@ -12,7 +12,7 @@
     - discord token -> DISCORD_TOKEN_FILE
     - riot token -> RIOT_API_TOKEN_FILE
     - PG secret -> generate using `gpg --gen-random --armor 1 24`
-    - PG config secret -> TODO
+    - PG config secret -> the file has the format `db:5432:ekkobot:[password]`
 4. Run the docker compose
 
 # WIP
