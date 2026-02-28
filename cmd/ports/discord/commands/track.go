@@ -42,7 +42,7 @@ func CreateTrackCommand(q *db.Queries, client riot.RiotClientInterface) {
 
 			summoner, err := q.GetSummonerByNameAndTag(ctx, db.GetSummonerByNameAndTagParams{
 				Name:    pgtype.Text{String: name, Valid: true},
-				Tagline: pgtype.Text{String: tag, Valid: true},
+				TagLine: pgtype.Text{String: tag, Valid: true},
 			})
 
 			// brand new summoner
@@ -58,8 +58,8 @@ func CreateTrackCommand(q *db.Queries, client riot.RiotClientInterface) {
 				}
 				summoner, err = q.CreateSummoner(ctx, db.CreateSummonerParams{
 					Name:       pgtype.Text{String: name, Valid: true},
-					Tagline:    pgtype.Text{String: tag, Valid: true},
-					Playeruuid: pgtype.Text{String: res.PlayerUuid, Valid: true},
+					TagLine:    pgtype.Text{String: tag, Valid: true},
+					PlayerUuid: pgtype.Text{String: res.PlayerUuid, Valid: true},
 				})
 
 				slog.Info("Started tracking new summoner", "summoner", summoner)

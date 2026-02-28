@@ -12,31 +12,31 @@ import (
 )
 
 const createSummoner = `-- name: CreateSummoner :one
-INSERT INTO summoners (name, tagline, playerUuid)
+INSERT INTO summoners (name, tag_line, player_uuid)
 VALUES ($1, $2, $3)
-RETURNING id, name, tagline, playeruuid
+RETURNING id, name, tag_line, player_uuid
 `
 
 type CreateSummonerParams struct {
 	Name       pgtype.Text
-	Tagline    pgtype.Text
-	Playeruuid pgtype.Text
+	TagLine    pgtype.Text
+	PlayerUuid pgtype.Text
 }
 
 func (q *Queries) CreateSummoner(ctx context.Context, arg CreateSummonerParams) (Summoner, error) {
-	row := q.db.QueryRow(ctx, createSummoner, arg.Name, arg.Tagline, arg.Playeruuid)
+	row := q.db.QueryRow(ctx, createSummoner, arg.Name, arg.TagLine, arg.PlayerUuid)
 	var i Summoner
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Tagline,
-		&i.Playeruuid,
+		&i.TagLine,
+		&i.PlayerUuid,
 	)
 	return i, err
 }
 
 const getSummoner = `-- name: GetSummoner :one
-SELECT id, name, tagline, playeruuid FROM summoners
+SELECT id, name, tag_line, player_uuid FROM summoners
 WHERE id = $1
 `
 
@@ -46,30 +46,30 @@ func (q *Queries) GetSummoner(ctx context.Context, id int64) (Summoner, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Tagline,
-		&i.Playeruuid,
+		&i.TagLine,
+		&i.PlayerUuid,
 	)
 	return i, err
 }
 
 const getSummonerByNameAndTag = `-- name: GetSummonerByNameAndTag :one
-SELECT id, name, tagline, playeruuid FROM summoners
-WHERE name = $1 AND tagline = $2
+SELECT id, name, tag_line, player_uuid FROM summoners
+WHERE name = $1 AND tag_line = $2
 `
 
 type GetSummonerByNameAndTagParams struct {
 	Name    pgtype.Text
-	Tagline pgtype.Text
+	TagLine pgtype.Text
 }
 
 func (q *Queries) GetSummonerByNameAndTag(ctx context.Context, arg GetSummonerByNameAndTagParams) (Summoner, error) {
-	row := q.db.QueryRow(ctx, getSummonerByNameAndTag, arg.Name, arg.Tagline)
+	row := q.db.QueryRow(ctx, getSummonerByNameAndTag, arg.Name, arg.TagLine)
 	var i Summoner
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Tagline,
-		&i.Playeruuid,
+		&i.TagLine,
+		&i.PlayerUuid,
 	)
 	return i, err
 }

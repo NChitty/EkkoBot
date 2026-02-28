@@ -8,9 +8,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Guild struct {
+	ID          int64
+	DiscordID   pgtype.Text
+	LastUpdated pgtype.Timestamptz
+}
+
 type Summoner struct {
 	ID         int64
 	Name       pgtype.Text
-	Tagline    pgtype.Text
-	Playeruuid pgtype.Text
+	TagLine    pgtype.Text
+	PlayerUuid pgtype.Text
 }
