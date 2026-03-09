@@ -16,6 +16,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/phsym/console-slog"
 )
@@ -45,6 +46,7 @@ func init() {
 		slog.Error("Could not create a discord session, check the DISCORD_TOKEN_FILE and try again.")
 		os.Exit(1)
 	}
+	DiscordSession.StateEnabled = true
 }
 
 func init() {
@@ -90,6 +92,23 @@ func init() {
 
 func main() {
 	ctx := context.Background()
+	DiscordSession.Identify.Intents = discordgo.IntentsGuilds
+
+	DiscordSession.AddHandler(func(s *discordgo.Session, i *discordgo.GuildCreate) {
+		slog.Info("A new guild has added EkkoBot", "name", i.Guild.Name, "id", i.Guild.ID)
+		guildId := pgtype.Text{
+				String: i.Guild.ID,
+				Valid: true,
+			}
+		_, err := Queries.GetGuildByDiscordId(ctx, guildId)
+		if err != nil && err.Error() == "no rows in result set" {
+			_, err := Queries.CreateGuild(ctx, guildId)
+			if err != nil {
+				slog.Error("Failed to insert guild", "name", i.Guild.Name, "id", i.Guild.ID)
+			}
+		}
+	})
+
 	err := DiscordSession.Open()
 	if err != nil {
 		slog.Error("Could not open discord session.", "error", err)

@@ -37,6 +37,19 @@ func CreateTrackCommand(q *db.Queries, client riot.RiotClientInterface) {
 			name := i.ApplicationCommandData().GetOption("name").StringValue()
 			tag := i.ApplicationCommandData().GetOption("tag").StringValue()
 			ctx := context.Background()
+			slog.Debug(fmt.Sprintf("Received %s", i.Type.String()), "id", i.GuildID)
+
+			guildId := pgtype.Text{
+					String: i.GuildID,
+					Valid: true,
+				}
+			guild, err := q.GetGuildByDiscordId(ctx, guildId)
+			if err != nil && err.Error() == "no rows in result set" {
+				guild, err := q.CreateGuild(ctx, guildId)
+				if err != nil {
+					slog.Error("Failed to insert guild", "id", i.GuildID)
+				}
+			}
 
 			slog.Debug("Checking if already tracking summoner", "name", name, "tag", tag)
 
