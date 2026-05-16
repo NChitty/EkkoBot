@@ -23,9 +23,9 @@ type CreateSummonerParams struct {
 	PlayerUuid pgtype.Text
 }
 
-func (q *Queries) CreateSummoner(ctx context.Context, arg CreateSummonerParams) (Summoner, error) {
+func (q *Queries) CreateSummoner(ctx context.Context, arg CreateSummonerParams) (SummonerRow, error) {
 	row := q.db.QueryRow(ctx, createSummoner, arg.Name, arg.TagLine, arg.PlayerUuid)
-	var i Summoner
+	var i SummonerRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -40,9 +40,9 @@ SELECT id, name, tag_line, player_uuid FROM summoners
 WHERE id = $1
 `
 
-func (q *Queries) GetSummoner(ctx context.Context, id int64) (Summoner, error) {
+func (q *Queries) GetSummoner(ctx context.Context, id int64) (SummonerRow, error) {
 	row := q.db.QueryRow(ctx, getSummoner, id)
-	var i Summoner
+	var i SummonerRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -62,9 +62,9 @@ type GetSummonerByNameAndTagParams struct {
 	TagLine pgtype.Text
 }
 
-func (q *Queries) GetSummonerByNameAndTag(ctx context.Context, arg GetSummonerByNameAndTagParams) (Summoner, error) {
+func (q *Queries) GetSummonerByNameAndTag(ctx context.Context, arg GetSummonerByNameAndTagParams) (SummonerRow, error) {
 	row := q.db.QueryRow(ctx, getSummonerByNameAndTag, arg.Name, arg.TagLine)
-	var i Summoner
+	var i SummonerRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,

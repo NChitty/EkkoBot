@@ -17,9 +17,9 @@ VALUES ($1)
 RETURNING id, discord_id, last_updated
 `
 
-func (q *Queries) CreateGuild(ctx context.Context, discordID pgtype.Text) (Guild, error) {
+func (q *Queries) CreateGuild(ctx context.Context, discordID pgtype.Text) (GuildRow, error) {
 	row := q.db.QueryRow(ctx, createGuild, discordID)
-	var i Guild
+	var i GuildRow
 	err := row.Scan(&i.ID, &i.DiscordID, &i.LastUpdated)
 	return i, err
 }
@@ -29,9 +29,9 @@ SELECT id, discord_id, last_updated FROM guilds
 WHERE discord_id = $1
 `
 
-func (q *Queries) GetGuildByDiscordId(ctx context.Context, discordID pgtype.Text) (Guild, error) {
+func (q *Queries) GetGuildByDiscordId(ctx context.Context, discordID pgtype.Text) (GuildRow, error) {
 	row := q.db.QueryRow(ctx, getGuildByDiscordId, discordID)
-	var i Guild
+	var i GuildRow
 	err := row.Scan(&i.ID, &i.DiscordID, &i.LastUpdated)
 	return i, err
 }
@@ -41,9 +41,9 @@ SELECT id, discord_id, last_updated FROM guilds
 WHERE id = $1
 `
 
-func (q *Queries) GetGuildById(ctx context.Context, id int64) (Guild, error) {
+func (q *Queries) GetGuildById(ctx context.Context, id int64) (GuildRow, error) {
 	row := q.db.QueryRow(ctx, getGuildById, id)
-	var i Guild
+	var i GuildRow
 	err := row.Scan(&i.ID, &i.DiscordID, &i.LastUpdated)
 	return i, err
 }
@@ -55,9 +55,9 @@ WHERE discord_id = $1
 RETURNING id, discord_id, last_updated
 `
 
-func (q *Queries) UpdateLastRanTime(ctx context.Context, discordID pgtype.Text) (Guild, error) {
+func (q *Queries) UpdateLastRanTime(ctx context.Context, discordID pgtype.Text) (GuildRow, error) {
 	row := q.db.QueryRow(ctx, updateLastRanTime, discordID)
-	var i Guild
+	var i GuildRow
 	err := row.Scan(&i.ID, &i.DiscordID, &i.LastUpdated)
 	return i, err
 }

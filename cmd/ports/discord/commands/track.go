@@ -5,13 +5,36 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/NChitty/lol-discord-bot/cmd/ports/db"
-	"github.com/NChitty/lol-discord-bot/cmd/ports/riot"
 	"github.com/bwmarrin/discordgo"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func CreateTrackCommand(q *db.Queries, client riot.RiotClientInterface) {
+const TRACK_COMMAND string = "track"
+
+func trackCommand(ctx context.Context, guildService GuildServicer, summonerService SummonerServicer, command *discordgo.ApplicationCommand) func(*discordgo.Session, *discordgo.InteractionCreate) {
+	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		slog.Debug(fmt.Sprintf("Received %s", i.Type.String()), "id", i.GuildID)
+
+		name := i.ApplicationCommandData().GetOption("name").StringValue()
+		tag := i.ApplicationCommandData().GetOption("tag").StringValue()
+		cmdCtx := context.WithValue(ctx, CONTEXT_KEY, TRACK_COMMAND)
+		if _, err := guildService.GetGuild(cmdCtx, i.GuildID); err != nil {
+			slog.ErrorContext(cmdCtx, "Failed to execute track command", "error", err.Error())
+			// TODO interaction close
+			return
+		} else {
+			if _, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
+				// TODO interaction close
+				return
+			} else {
+				slog.ErrorContext(cmdCtx, "Failed to execute track command", "error", err.Error())
+				// TODO interaction close
+				return
+			}
+		}
+	}
+}
+
+func CreateTrackCommand(ctx context.Context, guildService GuildServicer, summonerService SummonerServicer) {
 	command := &discordgo.ApplicationCommand{
 		Name:        "track",
 		Description: "Start tracking the LP changes of a summoner.",
@@ -33,72 +56,6 @@ func CreateTrackCommand(q *db.Queries, client riot.RiotClientInterface) {
 	slog.Debug(fmt.Sprintf("Creating \"%v\" command", command.Name))
 	CommandRegistry.registerHandler(
 		command,
-		func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			name := i.ApplicationCommandData().GetOption("name").StringValue()
-			tag := i.ApplicationCommandData().GetOption("tag").StringValue()
-			ctx := context.Background()
-			slog.Debug(fmt.Sprintf("Received %s", i.Type.String()), "id", i.GuildID)
-
-			guildId := pgtype.Text{
-					String: i.GuildID,
-					Valid: true,
-				}
-			guild, err := q.GetGuildByDiscordId(ctx, guildId)
-			if err != nil && err.Error() == "no rows in result set" {
-				guild, err := q.CreateGuild(ctx, guildId)
-				if err != nil {
-					slog.Error("Failed to insert guild", "id", i.GuildID)
-				}
-			}
-
-			slog.Debug("Checking if already tracking summoner", "name", name, "tag", tag)
-
-			summoner, err := q.GetSummonerByNameAndTag(ctx, db.GetSummonerByNameAndTagParams{
-				Name:    pgtype.Text{String: name, Valid: true},
-				TagLine: pgtype.Text{String: tag, Valid: true},
-			})
-
-			// brand new summoner
-			if err != nil && err.Error() == "no rows in result set" {
-				res, err := client.GetAccountByRiotId(ctx, riot.AccountByRiotIdRequestParams{
-					Name: name,
-					Tagline: tag,
-				})
-				if err != nil {
-					slog.Error("Could not lookup summoner", "name", name, "tag", tag, "error", err)
-
-					return
-				}
-				summoner, err = q.CreateSummoner(ctx, db.CreateSummonerParams{
-					Name:       pgtype.Text{String: name, Valid: true},
-					TagLine:    pgtype.Text{String: tag, Valid: true},
-					PlayerUuid: pgtype.Text{String: res.PlayerUuid, Valid: true},
-				})
-
-				slog.Info("Started tracking new summoner", "summoner", summoner)
-
-				if err != nil {
-					slog.Error(
-						"Could not insert new summoner",
-						"summoner", fmt.Sprintf("%s#%s", name, tag),
-						"error", err,
-					)
-					SendCommandResponse(s, i, command, "Failed to add your summoner, check the name and tag and try again.")
-				}
-
-				SendCommandResponse(s, i, command, "Added summoner, we will start tracking your GAINS")
-				return
-			}
-
-			// failed to check if summoner exists
-			if err != nil {
-				slog.Error("Could not check if summoner exists", "name", name, "tag", tag, "error", err)
-
-				SendCommandResponse(s, i, command, "We failed to check if we are already tracking your summoner.")
-				return
-			}
-
-			slog.Debug("Summoner already exists")
-			SendCommandResponse(s, i, command, "TODO: SEND CURRENT DATA, WE ARE ALREADY TRACKING")
-		})
+		trackCommand(ctx, guildService, summonerService, command),
+		)
 }

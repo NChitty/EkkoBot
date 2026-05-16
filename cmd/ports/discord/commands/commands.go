@@ -6,6 +6,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const CONTEXT_KEY = "command"
+
 var CommandRegistry *commandRegistry
 
 func init() {
