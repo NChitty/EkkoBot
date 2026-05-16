@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/NChitty/lol-discord-bot/cmd/ports/discord"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -16,7 +17,7 @@ func infoCommand(ctx context.Context, guildService GuildServicer, summonerServic
 
 		name := i.ApplicationCommandData().GetOption("name").StringValue()
 		tag := i.ApplicationCommandData().GetOption("tag").StringValue()
-		cmdCtx := context.WithValue(ctx, CONTEXT_KEY, newCommandCtxValue(INFO_COMMAND))
+		cmdCtx := context.WithValue(ctx, CONTEXT_KEY, newCommandCtxValue(INFO_COMMAND, i.GuildID))
 		// Add guild
 		err := guildService.CreateGuild(cmdCtx, i.GuildID)
 		if err != nil {
@@ -24,10 +25,10 @@ func infoCommand(ctx context.Context, guildService GuildServicer, summonerServic
 		}
 
 		if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag, i.GuildID); err == nil {
-			// TODO interaction close
+			discord.SendSummonerResponse(cmdCtx, s, i, command, stats)
 		} else {
-			slog.ErrorContext(cmdCtx, "Failed to execute track command", "error", err.Error())
-			// TODO interaction close
+			slog.ErrorContext(cmdCtx, "Failed to execute command", "error", err.Error())
+			discord.SendCommandResponse(cmdCtx, s, i, command, "Could not complete the request. Reach out to your system administrator for details.")
 			return
 		}
 	}
