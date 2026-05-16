@@ -22,7 +22,7 @@ func trackCommand(ctx context.Context, guildService GuildServicer, summonerServi
 			// TODO interaction close
 			return
 		} else {
-			if _, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
+			if _, err := summonerService.GetSummonerStats(cmdCtx, name, tag, i.GuildID); err == nil {
 				// TODO interaction close
 				return
 			} else {
@@ -36,7 +36,7 @@ func trackCommand(ctx context.Context, guildService GuildServicer, summonerServi
 
 func CreateTrackCommand(ctx context.Context, guildService GuildServicer, summonerService SummonerServicer) {
 	command := &discordgo.ApplicationCommand{
-		Name:        "track",
+		Name:        TRACK_COMMAND,
 		Description: "Start tracking the LP changes of a summoner.",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
@@ -57,5 +57,5 @@ func CreateTrackCommand(ctx context.Context, guildService GuildServicer, summone
 	CommandRegistry.registerHandler(
 		command,
 		trackCommand(ctx, guildService, summonerService, command),
-		)
+	)
 }

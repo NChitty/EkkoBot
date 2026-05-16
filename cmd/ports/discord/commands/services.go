@@ -7,9 +7,10 @@ import (
 )
 
 type SummonerServicer interface {
-	GetSummonerStats(ctx context.Context, name string, tag string) (models.SummonerStats, error)
+	GetSummonerStats(ctx context.Context, name string, tag string, discordId string) (models.SummonerStats, error)
 }
 
 type GuildServicer interface {
 	GetGuild(ctx context.Context, discordId string) (models.Guild, error)
+	CreateGuild(ctx context.Context, discordId string) error
 }

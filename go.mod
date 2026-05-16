@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/phsym/console-slog v0.3.1
 )

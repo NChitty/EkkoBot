@@ -7,6 +7,8 @@ import (
 	"github.com/NChitty/lol-discord-bot/cmd/domain/models"
 )
 
+const GUILD_NOT_FOUND_ERRORF string = "Could not find guild %s"
+
 type GuildRepository interface {
 	GetGuild(ctx context.Context, discordId string) (models.Guild, error)
 	CreateGuild(ctx context.Context, discordId string) (models.Guild, error)
@@ -20,12 +22,15 @@ func NewGuildService(r GuildRepository) *GuildService {
 	return &GuildService{r}
 }
 
-const GUILD_NOT_FOUND_ERRORF string = "Could not find guild %s"
-
 func (g *GuildService) GetGuild(ctx context.Context, discordId string) (models.Guild, error) {
 	if guild, err := g.guildRepository.GetGuild(ctx, discordId); err != nil && err.Error() == fmt.Sprintf(GUILD_NOT_FOUND_ERRORF, discordId) {
 		return g.guildRepository.CreateGuild(ctx, discordId)
 	} else {
 		return guild, err
 	}
+}
+
+func (g *GuildService) CreateGuild(ctx context.Context, discordId string) error {
+	_, err := g.guildRepository.CreateGuild(ctx, discordId)
+	return err
 }

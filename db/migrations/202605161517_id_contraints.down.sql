@@ -1,0 +1,4 @@
+ALTER TABLE summoners
+DROP CONSTRAINT summoners_player_uuid_key
+ALTER TABLE guilds
+DROP CONSTRAINT guild_discord_id_key
