@@ -4,7 +4,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o ekko-bot cmd/bot/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o ekko-bot cmd/main.go
 
 FROM alpine:3.22.0 AS run
 
