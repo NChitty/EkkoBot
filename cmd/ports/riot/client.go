@@ -1,43 +1,10 @@
 package riot
 
 import (
-	"bufio"
 	"context"
-	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 )
-
-var riotToken string
-var RiotClient RiotClientInterface
-
-func init() {
-	fileName, isPresent := os.LookupEnv("RIOT_API_TOKEN_FILE")
-	if !isPresent {
-		slog.Error("RIOT_API_TOKEN_FILE environment variable is unset.")
-		os.Exit(1)
-	}
-	if fileName == "" {
-		slog.Error("RIOT_API_TOKEN_FILE environment variable is empty.")
-		os.Exit(1)
-	}
-
-	riotApiTokenFile, err := os.Open(fileName)
-	if err == nil {
-		scanner := bufio.NewScanner(riotApiTokenFile)
-		scanner.Scan()
-		riotToken = scanner.Text()
-	}
-}
-
-func init() {
-	client, err := NewClient("https://%s.api.riotgames.com/", WithRequestEditorFn(RiotTokenHeader))
-	if err != nil {
-		os.Exit(1)
-	}
-	RiotClient = client
-}
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -101,9 +68,11 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 	}
 }
 
-func RiotTokenHeader(ctx context.Context, req *http.Request) error {
-	req.Header.Add("X-Riot-Token", riotToken)
-	return nil
+func RiotTokenHeader(riotToken string) func(context.Context, *http.Request) error {
+	return func (ctx context.Context, req *http.Request) error {
+		req.Header.Add("X-Riot-Token", riotToken)
+		return nil
+	}
 }
 
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {

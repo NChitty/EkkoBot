@@ -23,7 +23,7 @@ func trackCommand(ctx context.Context, guildService GuildServicer, summonerServi
 			discord.SendCommandResponse(cmdCtx, s, i, command, "Could not complete the request. Reach out to your system administrator for details.")
 			return
 		} else {
-			if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag, i.GuildID); err == nil {
+			if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
 				discord.SendSummonerResponse(cmdCtx, s, i, command, stats)
 				return
 			} else {

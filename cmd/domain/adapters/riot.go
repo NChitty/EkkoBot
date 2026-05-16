@@ -9,15 +9,15 @@ import (
 	"github.com/NChitty/lol-discord-bot/cmd/ports/riot"
 )
 
-type RiotAdapter struct {
+type HttpRiotAdapter struct {
 	riotClient riot.RiotClientInterface
 }
 
-func NewRiotAdapter(riotClient riot.RiotClientInterface) *RiotAdapter {
-	return &RiotAdapter{riotClient}
+func NewHttpRiotAdapter(riotClient riot.RiotClientInterface) *HttpRiotAdapter {
+	return &HttpRiotAdapter{riotClient}
 }
 
-func (a *RiotAdapter) GetSummoner(ctx context.Context, name string, tag string) (models.Summoner, error) {
+func (a *HttpRiotAdapter) GetSummoner(ctx context.Context, name string, tag string) (models.Summoner, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -39,7 +39,7 @@ func (a *RiotAdapter) GetSummoner(ctx context.Context, name string, tag string) 
 	}, nil
 }
 
-func (a *RiotAdapter) GetRankedStats(ctx context.Context, summoner models.Summoner) (models.SummonerStats, error) {
+func (a *HttpRiotAdapter) GetRankedStats(ctx context.Context, summoner models.Summoner) (models.SummonerStats, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 

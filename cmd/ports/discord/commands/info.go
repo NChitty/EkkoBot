@@ -24,7 +24,7 @@ func infoCommand(ctx context.Context, guildService GuildServicer, summonerServic
 			slog.ErrorContext(cmdCtx, "Could not create guild", "error", err.Error())
 		}
 
-		if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag, i.GuildID); err == nil {
+		if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
 			discord.SendSummonerResponse(cmdCtx, s, i, command, stats)
 		} else {
 			slog.ErrorContext(cmdCtx, "Failed to execute command", "error", err.Error())
