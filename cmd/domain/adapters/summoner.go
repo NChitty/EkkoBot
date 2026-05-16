@@ -2,9 +2,11 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/NChitty/lol-discord-bot/cmd/domain/models"
+	"github.com/NChitty/lol-discord-bot/cmd/domain/services"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/db"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/discord/commands"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -30,6 +32,8 @@ func (s *SummonerRepository) GetSummoner(ctx context.Context, name string, tag s
 			TagLine:    row.TagLine.String,
 			PlayerUuid: row.PlayerUuid.String,
 		}, nil
+	} else if err.Error() == "no rows in result set" {
+		return models.Summoner{}, fmt.Errorf(services.SUMMONER_NOT_FOUND_ERRORF, name, tag)
 	} else {
 		return models.Summoner{}, err
 	}
@@ -55,7 +59,7 @@ func (s *SummonerRepository) SaveSummoner(ctx context.Context, stats models.Summ
 	}
 	row, err := s.queries.UpdateSummoner(ctx, params)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to update summoner stats", "name", stats.Summoner.Name, "tagline", stats.Summoner.TagLine)
+		slog.Error("Failed to update summoner stats", "name", stats.Summoner.Name, "tagline", stats.Summoner.TagLine)
 		return models.SummonerStats{}, err
 	}
 

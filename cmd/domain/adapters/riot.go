@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NChitty/lol-discord-bot/cmd/domain/models"
+	"github.com/NChitty/lol-discord-bot/cmd/ports/discord/commands"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/riot"
 )
 
@@ -45,11 +46,13 @@ func (a *HttpRiotAdapter) GetRankedStats(ctx context.Context, summoner models.Su
 
 	params := riot.QueueEntriesByPlayerUuidParams{PlayerUuid: summoner.PlayerUuid}
 	resp, err := a.riotClient.GetQueueEntriesByPlayerUuid(reqCtx, params)
+	contextValue := reqCtx.Value(commands.CONTEXT_KEY).(commands.CommandContext)
 	if err != nil {
-		slog.ErrorContext(reqCtx, "Failed to get ranked queues", "playerUuid", summoner.PlayerUuid, "error", err)
+		slog.Error("Failed to get ranked queues", "playerUuid", summoner.PlayerUuid, "error", err, "command", contextValue.Command, "request_id", contextValue.RequestId.String())
 		return models.SummonerStats{}, err
 	}
 
+	slog.Debug("Received queue response", "response", resp, "command", contextValue.Command, "request_id", contextValue.RequestId.String())
 	respByQueue := make(map[riot.QueueType]*riot.QueueResponse, len(resp))
 	for _, res := range resp {
 		respByQueue[res.QueueType] = res
