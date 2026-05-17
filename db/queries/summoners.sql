@@ -12,18 +12,6 @@ SELECT * FROM summoners
 WHERE name = $1 AND tag_line = $2;
 
 -- name: UpdateSummoner :one
-WITH summoner_upsert AS (
-  INSERT INTO summoners (name, tag_line, player_uuid)
-  VALUES ($1, $2, $3)
-  ON CONFLICT (player_uuid)
-  DO NOTHING
-  RETURNING id
-),
-summoner_id AS (
-  SELECT id from summoner_upsert
-  UNION
-  SELECT id from summoners WHERE player_uuid = $3
-),
 inserted AS (
   INSERT INTO guild_summoners (
     summoner_id,
@@ -41,8 +29,8 @@ inserted AS (
     last_updated
   )
   VALUES (
-    (SELECT id FROM summoner_id),
-    (SELECT id FROM guilds WHERE guilds.discord_id = $4),
+    (SELECT id FROM summoners WHERE summoners.player_uuid = $1),
+    (SELECT id FROM guilds WHERE guilds.id = $2),
     $5,
     $6,
     $7,
@@ -58,5 +46,4 @@ inserted AS (
   RETURNING *
 )
 SELECT * FROM inserted
-JOIN summoners ON summoners.id = inserted.summoner_id
-JOIN guilds ON guilds.id = inserted.guild_id;
+JOIN summoners ON summoners.id = inserted.summoner_id;

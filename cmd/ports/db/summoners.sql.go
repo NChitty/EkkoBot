@@ -79,13 +79,28 @@ WITH summoner_upsert AS (
   INSERT INTO summoners (name, tag_line, player_uuid)
   VALUES ($1, $2, $3)
   ON CONFLICT (player_uuid)
-  DO NOTHING
+  DO UPDATE SET
+    name = EXCLUDED.name,
+    tag_line = EXCLUDED.tag_line
   RETURNING id
 ),
 summoner_id AS (
-  SELECT id from summoner_upsert
+  SELECT id FROM summoner_upsert
   UNION
-  SELECT id from summoners WHERE player_uuid = $3
+  SELECT id FROM summoners WHERE player_uuid = $3
+),
+guild_upsert AS (
+  INSERT INTO guilds (discord_id, last_updated)
+  VALUES ($4, now())
+  ON CONFLICT (discord_id)
+  DO UPDATE SET
+    last_updated = EXCLUDED.last_updated
+  RETURNING id
+),
+guild_id AS (
+  SELECT id FROM guild_upsert
+  UNION
+  SELECT id FROM guilds WHERE discord_id = $4
 ),
 inserted AS (
   INSERT INTO guild_summoners (
@@ -105,7 +120,7 @@ inserted AS (
   )
   VALUES (
     (SELECT id FROM summoner_id),
-    (SELECT id FROM guilds WHERE guilds.discord_id = $4),
+    (SELECT id FROM guild_id),
     $5,
     $6,
     $7,
@@ -120,9 +135,8 @@ inserted AS (
   )
   RETURNING id, summoner_id, guild_id, flex_games_played, flex_tier, flex_rank, flex_wins, flex_lp, solo_duo_games_played, solo_duo_tier, solo_duo_rank, solo_duo_wins, solo_duo_lp, last_updated
 )
-SELECT inserted.id, summoner_id, guild_id, flex_games_played, flex_tier, flex_rank, flex_wins, flex_lp, solo_duo_games_played, solo_duo_tier, solo_duo_rank, solo_duo_wins, solo_duo_lp, inserted.last_updated, summoners.id, name, tag_line, player_uuid, guilds.id, discord_id, guilds.last_updated FROM inserted
+SELECT inserted.id, summoner_id, guild_id, flex_games_played, flex_tier, flex_rank, flex_wins, flex_lp, solo_duo_games_played, solo_duo_tier, solo_duo_rank, solo_duo_wins, solo_duo_lp, last_updated, summoners.id, name, tag_line, player_uuid FROM inserted
 JOIN summoners ON summoners.id = inserted.summoner_id
-JOIN guilds ON guilds.id = inserted.guild_id
 `
 
 type UpdateSummonerParams struct {
@@ -161,9 +175,6 @@ type UpdateSummonerRow struct {
 	Name               pgtype.Text
 	TagLine            pgtype.Text
 	PlayerUuid         pgtype.Text
-	ID_3               int64
-	DiscordID          pgtype.Text
-	LastUpdated_2      pgtype.Timestamptz
 }
 
 func (q *Queries) UpdateSummoner(ctx context.Context, arg UpdateSummonerParams) (UpdateSummonerRow, error) {
@@ -203,9 +214,6 @@ func (q *Queries) UpdateSummoner(ctx context.Context, arg UpdateSummonerParams) 
 		&i.Name,
 		&i.TagLine,
 		&i.PlayerUuid,
-		&i.ID_3,
-		&i.DiscordID,
-		&i.LastUpdated_2,
 	)
 	return i, err
 }
