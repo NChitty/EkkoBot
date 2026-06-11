@@ -9,15 +9,17 @@ import (
 	"github.com/NChitty/lol-discord-bot/cmd/domain/services"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/db"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/discord/commands"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type SummonerRepository struct {
 	queries *db.Queries
+	conn    *pgx.Conn
 }
 
-func NewSummonerRepository(q *db.Queries) *SummonerRepository {
-	return &SummonerRepository{q}
+func NewSummonerRepository(q *db.Queries, conn *pgx.Conn) *SummonerRepository {
+	return &SummonerRepository{q, conn}
 }
 
 func (s *SummonerRepository) GetSummoner(ctx context.Context, name string, tag string) (models.Summoner, error) {
@@ -40,12 +42,29 @@ func (s *SummonerRepository) GetSummoner(ctx context.Context, name string, tag s
 }
 
 func (s *SummonerRepository) SaveSummoner(ctx context.Context, stats models.SummonerStats) (models.SummonerStats, error) {
-	params := db.UpdateSummonerParams{
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return models.SummonerStats{}, err
+	}
+	defer tx.Rollback(ctx)
+	qtx := s.queries.WithTx(tx);
+	guild, err := qtx.CreateGuild(ctx, pgtype.Text{String: ctx.Value(commands.CONTEXT_KEY).(commands.CommandContext).DiscordId, Valid: true})
+	if err != nil {
+		return models.SummonerStats{}, err
+	}
+	createParams := db.CreateSummonerParams{
 		Name:       pgtype.Text{String: stats.Summoner.Name, Valid: true},
 		TagLine:    pgtype.Text{String: stats.Summoner.TagLine, Valid: true},
 		PlayerUuid: pgtype.Text{String: stats.Summoner.PlayerUuid, Valid: true},
-		// Not a fan, assumes I know what the context this is being called in
-		DiscordID:          pgtype.Text{String: ctx.Value(commands.CONTEXT_KEY).(commands.CommandContext).DiscordId},
+	}
+	summoner, err := qtx.CreateSummoner(ctx, createParams)
+	if err != nil {
+	  return models.SummonerStats{}, err
+	}
+
+	params := db.UpdateSummonerParams{
+		SummonerID:         pgtype.Int8{Int64: summoner.ID, Valid: true},
+		GuildID:            pgtype.Int8{Int64: guild.ID, Valid: true},
 		FlexGamesPlayed:    pgtype.Int4{Int32: int32(stats.FlexGamesPlayed), Valid: true},
 		FlexTier:           pgtype.Text{String: stats.FlexTier, Valid: true},
 		FlexRank:           pgtype.Text{String: stats.FlexRank, Valid: true},
@@ -60,6 +79,10 @@ func (s *SummonerRepository) SaveSummoner(ctx context.Context, stats models.Summ
 	row, err := s.queries.UpdateSummoner(ctx, params)
 	if err != nil {
 		slog.Error("Failed to update summoner stats", "name", stats.Summoner.Name, "tagline", stats.Summoner.TagLine)
+		return models.SummonerStats{}, err
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
 		return models.SummonerStats{}, err
 	}
 

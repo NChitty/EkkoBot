@@ -18,19 +18,13 @@ func trackCommand(ctx context.Context, guildService GuildServicer, summonerServi
 		name := i.ApplicationCommandData().GetOption("name").StringValue()
 		tag := i.ApplicationCommandData().GetOption("tag").StringValue()
 		cmdCtx := context.WithValue(ctx, CONTEXT_KEY, newCommandCtxValue(TRACK_COMMAND, i.GuildID))
-		if _, err := guildService.GetGuild(cmdCtx, i.GuildID); err != nil {
+		if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
+			discord.SendSummonerResponse(cmdCtx, s, i, command, stats)
+			return
+		} else {
 			slog.ErrorContext(cmdCtx, "Failed to execute command", "error", err.Error())
 			discord.SendCommandResponse(cmdCtx, s, i, command, "Could not complete the request. Reach out to your system administrator for details.")
 			return
-		} else {
-			if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
-				discord.SendSummonerResponse(cmdCtx, s, i, command, stats)
-				return
-			} else {
-				slog.ErrorContext(cmdCtx, "Failed to execute command", "error", err.Error())
-				discord.SendCommandResponse(cmdCtx, s, i, command, "Could not complete the request. Reach out to your system administrator for details.")
-				return
-			}
 		}
 	}
 }

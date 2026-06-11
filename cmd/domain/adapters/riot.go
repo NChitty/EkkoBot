@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -52,9 +53,9 @@ func (a *HttpRiotAdapter) GetRankedStats(ctx context.Context, summoner models.Su
 		return models.SummonerStats{}, err
 	}
 
-	slog.Debug("Received queue response", "response", resp, "command", contextValue.Command, "request_id", contextValue.RequestId.String())
 	respByQueue := make(map[riot.QueueType]*riot.QueueResponse, len(resp))
 	for _, res := range resp {
+		slog.Debug("Received queue response", "response", fmt.Sprintf("%#v", res), "command", contextValue.Command, "request_id", contextValue.RequestId.String())
 		respByQueue[res.QueueType] = res
 	}
 

@@ -11,18 +11,13 @@ import (
 
 const INFO_COMMAND string = "stats"
 
-func infoCommand(ctx context.Context, guildService GuildServicer, summonerService SummonerServicer, command *discordgo.ApplicationCommand) func(*discordgo.Session, *discordgo.InteractionCreate) {
+func infoCommand(ctx context.Context, summonerService SummonerServicer, command *discordgo.ApplicationCommand) func(*discordgo.Session, *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		slog.Debug(fmt.Sprintf("Received %s", i.Type.String()), "id", i.GuildID)
 
 		name := i.ApplicationCommandData().GetOption("name").StringValue()
 		tag := i.ApplicationCommandData().GetOption("tag").StringValue()
 		cmdCtx := context.WithValue(ctx, CONTEXT_KEY, newCommandCtxValue(INFO_COMMAND, i.GuildID))
-		// Add guild
-		err := guildService.CreateGuild(cmdCtx, i.GuildID)
-		if err != nil {
-			slog.ErrorContext(cmdCtx, "Could not create guild", "error", err.Error())
-		}
 
 		if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
 			discord.SendSummonerResponse(cmdCtx, s, i, command, stats)
@@ -34,7 +29,7 @@ func infoCommand(ctx context.Context, guildService GuildServicer, summonerServic
 	}
 }
 
-func CreateInfoCommand(ctx context.Context, guildService GuildServicer, summonerService SummonerServicer) {
+func CreateInfoCommand(ctx context.Context, summonerService SummonerServicer) {
 	command := &discordgo.ApplicationCommand{
 		Name:        INFO_COMMAND,
 		Description: "Get the current ranked stats for the summoner",
@@ -56,6 +51,6 @@ func CreateInfoCommand(ctx context.Context, guildService GuildServicer, summoner
 	slog.Debug(fmt.Sprintf("Creating \"%v\" command", command.Name))
 	CommandRegistry.registerHandler(
 		command,
-		infoCommand(ctx, guildService, summonerService, command),
+		infoCommand(ctx, summonerService, command),
 	)
 }

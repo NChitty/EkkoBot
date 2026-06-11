@@ -60,7 +60,7 @@ func NewApp(ctx context.Context) (*App, error) {
 	// Adapters
 	guildRepository := adapters.NewGuildRepository(queries)
 	riotAdapter := adapters.NewHttpRiotAdapter(client)
-	summonerRepository := adapters.NewSummonerRepository(queries)
+	summonerRepository := adapters.NewSummonerRepository(queries, conn)
 
 	guildService := services.NewGuildService(guildRepository)
 	summonerService := services.NewSummonerService(riotAdapter, summonerRepository)
@@ -95,7 +95,7 @@ func (a *App) Start() error {
 
 	slog.Debug("Creating commands")
 	commands.CreateTrackCommand(a.Context, a.GuildService, a.SummonerService)
-	commands.CreateInfoCommand(a.Context, a.GuildService, a.SummonerService)
+	commands.CreateInfoCommand(a.Context, a.SummonerService)
 	commands.CommandRegistry.AddHandlers(a.DiscordSession)
 
 	return nil
