@@ -54,7 +54,7 @@ type QueueResponse struct {
 	LeagueId     string    `json:"leagueId"`
 	QueueType    QueueType `json:"queueType"`
 	Tier         string    `json:"tier"`
-	Rank         string    `json:"string"`
+	Rank         string    `json:"rank"`
 	PlayerUuid   string    `json:"puuid"`
 	LeaguePoints int       `json:"leaguePoints"`
 	Wins         int       `json:"wins"`
