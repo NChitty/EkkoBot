@@ -10,7 +10,7 @@ import (
 	"github.com/NChitty/lol-discord-bot/cmd/ports/discord/commands"
 	"github.com/NChitty/lol-discord-bot/cmd/ports/riot"
 )
-
+const MISSING_QUEUE_ERROR string = "riot response is missing queue"
 type HttpRiotAdapter struct {
 	riotClient riot.RiotClientInterface
 }
@@ -57,6 +57,32 @@ func (a *HttpRiotAdapter) GetRankedStats(ctx context.Context, summoner models.Su
 	for _, res := range resp {
 		slog.Debug("Received queue response", "response", fmt.Sprintf("%#v", res), "command", contextValue.Command, "request_id", contextValue.RequestId.String())
 		respByQueue[res.QueueType] = res
+	}
+
+
+	if respByQueue[riot.RANKED_SOLO_DUO] == nil && respByQueue[riot.RANKED_FLEX] == nil {
+		return models.SummonerStats{}, fmt.Errorf(MISSING_QUEUE_ERROR)
+	}
+	if respByQueue[riot.RANKED_FLEX] == nil {
+		return models.SummonerStats{
+			Summoner:           summoner,
+			SoloDuoGamesPlayed: respByQueue[riot.RANKED_SOLO_DUO].Wins + respByQueue[riot.RANKED_SOLO_DUO].Losses,
+			SoloDuoTier:        respByQueue[riot.RANKED_SOLO_DUO].Tier,
+			SoloDuoRank:        respByQueue[riot.RANKED_SOLO_DUO].Rank,
+			SoloDuoWins:        respByQueue[riot.RANKED_SOLO_DUO].Wins,
+			SoloDuoLp:          respByQueue[riot.RANKED_SOLO_DUO].LeaguePoints,
+		}, nil
+	}
+
+	if respByQueue[riot.RANKED_SOLO_DUO] == nil {
+		return models.SummonerStats{
+			Summoner:        summoner,
+			FlexGamesPlayed: respByQueue[riot.RANKED_FLEX].Wins + respByQueue[riot.RANKED_FLEX].Losses,
+			FlexTier:        respByQueue[riot.RANKED_FLEX].Tier,
+			FlexRank:        respByQueue[riot.RANKED_FLEX].Rank,
+			FlexWins:        respByQueue[riot.RANKED_FLEX].Wins,
+			FlexLp:          respByQueue[riot.RANKED_FLEX].LeaguePoints,
+		}, nil
 	}
 
 	return models.SummonerStats{
