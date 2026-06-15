@@ -14,11 +14,11 @@ import (
 )
 
 type SummonerRepository struct {
-	queries *db.Queries
+	queries db.QuerierTx
 	conn    *pgx.Conn
 }
 
-func NewSummonerRepository(q *db.Queries, conn *pgx.Conn) *SummonerRepository {
+func NewSummonerRepository(q db.QuerierTx, conn *pgx.Conn) *SummonerRepository {
 	return &SummonerRepository{q, conn}
 }
 
@@ -47,7 +47,7 @@ func (s *SummonerRepository) SaveSummoner(ctx context.Context, stats models.Summ
 		return models.SummonerStats{}, err
 	}
 	defer tx.Rollback(ctx)
-	qtx := s.queries.WithTx(tx);
+	qtx := s.queries.WithTransaction(tx);
 	guild, err := qtx.CreateGuild(ctx, pgtype.Text{String: ctx.Value(commands.CONTEXT_KEY).(commands.CommandContext).DiscordId, Valid: true})
 	if err != nil {
 		return models.SummonerStats{}, err
