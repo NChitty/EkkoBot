@@ -8,13 +8,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Guild struct {
+type GuildRow struct {
 	ID          int64
 	DiscordID   pgtype.Text
 	LastUpdated pgtype.Timestamptz
 }
 
-type Summoner struct {
+type GuildSummonerRow struct {
+	ID                 int64
+	SummonerID         pgtype.Int8
+	GuildID            pgtype.Int8
+	FlexGamesPlayed    pgtype.Int4
+	FlexTier           pgtype.Text
+	FlexRank           pgtype.Text
+	FlexWins           pgtype.Int4
+	FlexLp             pgtype.Int4
+	SoloDuoGamesPlayed pgtype.Int4
+	SoloDuoTier        pgtype.Text
+	SoloDuoRank        pgtype.Text
+	SoloDuoWins        pgtype.Int4
+	SoloDuoLp          pgtype.Int4
+	LastUpdated        pgtype.Timestamptz
+}
+
+type SummonerRow struct {
 	ID         int64
 	Name       pgtype.Text
 	TagLine    pgtype.Text

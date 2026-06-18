@@ -14,6 +14,8 @@ import (
 const createSummoner = `-- name: CreateSummoner :one
 INSERT INTO summoners (name, tag_line, player_uuid)
 VALUES ($1, $2, $3)
+ON CONFLICT (player_uuid) DO UPDATE
+  SET name = EXCLUDED.name, tag_line = EXCLUDED.tag_line
 RETURNING id, name, tag_line, player_uuid
 `
 
@@ -23,9 +25,9 @@ type CreateSummonerParams struct {
 	PlayerUuid pgtype.Text
 }
 
-func (q *Queries) CreateSummoner(ctx context.Context, arg CreateSummonerParams) (Summoner, error) {
+func (q *Queries) CreateSummoner(ctx context.Context, arg CreateSummonerParams) (SummonerRow, error) {
 	row := q.db.QueryRow(ctx, createSummoner, arg.Name, arg.TagLine, arg.PlayerUuid)
-	var i Summoner
+	var i SummonerRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -40,9 +42,9 @@ SELECT id, name, tag_line, player_uuid FROM summoners
 WHERE id = $1
 `
 
-func (q *Queries) GetSummoner(ctx context.Context, id int64) (Summoner, error) {
+func (q *Queries) GetSummoner(ctx context.Context, id int64) (SummonerRow, error) {
 	row := q.db.QueryRow(ctx, getSummoner, id)
-	var i Summoner
+	var i SummonerRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -62,14 +64,135 @@ type GetSummonerByNameAndTagParams struct {
 	TagLine pgtype.Text
 }
 
-func (q *Queries) GetSummonerByNameAndTag(ctx context.Context, arg GetSummonerByNameAndTagParams) (Summoner, error) {
+func (q *Queries) GetSummonerByNameAndTag(ctx context.Context, arg GetSummonerByNameAndTagParams) (SummonerRow, error) {
 	row := q.db.QueryRow(ctx, getSummonerByNameAndTag, arg.Name, arg.TagLine)
-	var i Summoner
+	var i SummonerRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.TagLine,
 		&i.PlayerUuid,
+	)
+	return i, err
+}
+
+const updateSummoner = `-- name: UpdateSummoner :one
+WITH
+  inserted AS (
+    INSERT INTO guild_summoners (
+      summoner_id,
+      guild_id,
+      flex_games_played,
+      flex_tier,
+      flex_rank,
+      flex_wins,
+      flex_lp,
+      solo_duo_games_played,
+      solo_duo_tier,
+      solo_duo_rank,
+      solo_duo_wins,
+      solo_duo_lp,
+      last_updated
+    )
+    VALUES (
+      $1,
+      $2,
+      $3,
+      $4,
+      $5,
+      $6,
+      $7,
+      $8,
+      $9,
+      $10,
+      $11,
+      $12,
+      NOW()
+    )
+    RETURNING id, summoner_id, guild_id, flex_games_played, flex_tier, flex_rank, flex_wins, flex_lp, solo_duo_games_played, solo_duo_tier, solo_duo_rank, solo_duo_wins, solo_duo_lp, last_updated
+)
+SELECT inserted.id, summoner_id, guild_id, flex_games_played, flex_tier, flex_rank, flex_wins, flex_lp, solo_duo_games_played, solo_duo_tier, solo_duo_rank, solo_duo_wins, solo_duo_lp, inserted.last_updated, summoners.id, name, tag_line, player_uuid, guilds.id, discord_id, guilds.last_updated FROM inserted
+JOIN summoners ON summoners.id = inserted.summoner_id
+JOIN guilds ON guilds.id = inserted.guild_id
+`
+
+type UpdateSummonerParams struct {
+	SummonerID         pgtype.Int8
+	GuildID            pgtype.Int8
+	FlexGamesPlayed    pgtype.Int4
+	FlexTier           pgtype.Text
+	FlexRank           pgtype.Text
+	FlexWins           pgtype.Int4
+	FlexLp             pgtype.Int4
+	SoloDuoGamesPlayed pgtype.Int4
+	SoloDuoTier        pgtype.Text
+	SoloDuoRank        pgtype.Text
+	SoloDuoWins        pgtype.Int4
+	SoloDuoLp          pgtype.Int4
+}
+
+type UpdateSummonerRow struct {
+	ID                 int64
+	SummonerID         pgtype.Int8
+	GuildID            pgtype.Int8
+	FlexGamesPlayed    pgtype.Int4
+	FlexTier           pgtype.Text
+	FlexRank           pgtype.Text
+	FlexWins           pgtype.Int4
+	FlexLp             pgtype.Int4
+	SoloDuoGamesPlayed pgtype.Int4
+	SoloDuoTier        pgtype.Text
+	SoloDuoRank        pgtype.Text
+	SoloDuoWins        pgtype.Int4
+	SoloDuoLp          pgtype.Int4
+	LastUpdated        pgtype.Timestamptz
+	ID_2               int64
+	Name               pgtype.Text
+	TagLine            pgtype.Text
+	PlayerUuid         pgtype.Text
+	ID_3               int64
+	DiscordID          pgtype.Text
+	LastUpdated_2      pgtype.Timestamptz
+}
+
+func (q *Queries) UpdateSummoner(ctx context.Context, arg UpdateSummonerParams) (UpdateSummonerRow, error) {
+	row := q.db.QueryRow(ctx, updateSummoner,
+		arg.SummonerID,
+		arg.GuildID,
+		arg.FlexGamesPlayed,
+		arg.FlexTier,
+		arg.FlexRank,
+		arg.FlexWins,
+		arg.FlexLp,
+		arg.SoloDuoGamesPlayed,
+		arg.SoloDuoTier,
+		arg.SoloDuoRank,
+		arg.SoloDuoWins,
+		arg.SoloDuoLp,
+	)
+	var i UpdateSummonerRow
+	err := row.Scan(
+		&i.ID,
+		&i.SummonerID,
+		&i.GuildID,
+		&i.FlexGamesPlayed,
+		&i.FlexTier,
+		&i.FlexRank,
+		&i.FlexWins,
+		&i.FlexLp,
+		&i.SoloDuoGamesPlayed,
+		&i.SoloDuoTier,
+		&i.SoloDuoRank,
+		&i.SoloDuoWins,
+		&i.SoloDuoLp,
+		&i.LastUpdated,
+		&i.ID_2,
+		&i.Name,
+		&i.TagLine,
+		&i.PlayerUuid,
+		&i.ID_3,
+		&i.DiscordID,
+		&i.LastUpdated_2,
 	)
 	return i, err
 }

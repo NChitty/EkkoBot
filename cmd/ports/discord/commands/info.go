@@ -9,18 +9,18 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const TRACK_COMMAND string = "track"
+const INFO_COMMAND string = "stats"
 
-func trackCommand(ctx context.Context, guildService GuildServicer, summonerService SummonerServicer, command *discordgo.ApplicationCommand) func(*discordgo.Session, *discordgo.InteractionCreate) {
+func infoCommand(ctx context.Context, summonerService SummonerServicer, command *discordgo.ApplicationCommand) func(*discordgo.Session, *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		slog.Debug(fmt.Sprintf("Received %s", i.Type.String()), "id", i.GuildID)
 
 		name := i.ApplicationCommandData().GetOption("name").StringValue()
 		tag := i.ApplicationCommandData().GetOption("tag").StringValue()
-		cmdCtx := context.WithValue(ctx, CONTEXT_KEY, newCommandCtxValue(TRACK_COMMAND, i.GuildID))
+		cmdCtx := context.WithValue(ctx, CONTEXT_KEY, newCommandCtxValue(INFO_COMMAND, i.GuildID))
+
 		if stats, err := summonerService.GetSummonerStats(cmdCtx, name, tag); err == nil {
 			discord.SendSummonerResponse(cmdCtx, s, i, command, stats)
-			return
 		} else {
 			slog.ErrorContext(cmdCtx, "Failed to execute command", "error", err.Error())
 			discord.SendCommandResponse(cmdCtx, s, i, command, "Could not complete the request. Reach out to your system administrator for details.")
@@ -29,21 +29,21 @@ func trackCommand(ctx context.Context, guildService GuildServicer, summonerServi
 	}
 }
 
-func CreateTrackCommand(ctx context.Context, guildService GuildServicer, summonerService SummonerServicer) {
+func CreateInfoCommand(ctx context.Context, summonerService SummonerServicer) {
 	command := &discordgo.ApplicationCommand{
-		Name:        TRACK_COMMAND,
-		Description: "Start tracking the LP changes of a summoner.",
+		Name:        INFO_COMMAND,
+		Description: "Get the current ranked stats for the summoner",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "name",
-				Description: "Your summoner name",
+				Description: "Summoner name",
 				Required:    true,
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionString,
 				Name:        "tag",
-				Description: "Your summoner's tag",
+				Description: "Summoner's tag",
 				Required:    true,
 			},
 		},
@@ -51,6 +51,6 @@ func CreateTrackCommand(ctx context.Context, guildService GuildServicer, summone
 	slog.Debug(fmt.Sprintf("Creating \"%v\" command", command.Name))
 	CommandRegistry.registerHandler(
 		command,
-		trackCommand(ctx, guildService, summonerService, command),
+		infoCommand(ctx, summonerService, command),
 	)
 }

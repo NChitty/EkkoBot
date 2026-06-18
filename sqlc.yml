@@ -7,4 +7,11 @@ sql:
       go:
         package: "db"
         out: "cmd/ports/db"
+        emit_interface: true
         sql_package: "pgx/v5"
+overrides:
+  go:
+    rename:
+      summoner: SummonerRow
+      guild: GuildRow
+      guild_summoner: GuildSummonerRow

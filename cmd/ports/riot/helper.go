@@ -8,7 +8,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
+
+// containsPlaceholder checks if the string contains a %s placeholder
+func containsPlaceholder(s string) bool {
+	return strings.Contains(s, "%s")
+}
 
 func buildNewGetAccountByRiotIdRequest(
 	ctx context.Context,
@@ -16,7 +22,13 @@ func buildNewGetAccountByRiotIdRequest(
 	params AccountByRiotIdRequestParams,
 ) (*http.Request, error) {
 	var err error
-	server = fmt.Sprintf(server, "americas")
+	// Handle URLs that may or may not have a %s placeholder for region
+	if containsPlaceholder(server) {
+		server = fmt.Sprintf(server, "americas")
+	} else {
+		// Append region to the end of the URL
+		server = strings.TrimSuffix(server, "/") + "/americas"
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
@@ -75,7 +87,13 @@ func buildNewGetQueueEntriesByPlayerUuidRequest(
 	params QueueEntriesByPlayerUuidParams,
 ) (*http.Request, error) {
 	var err error
-	server = fmt.Sprintf(server, "na1")
+	// Handle URLs that may or may not have a %s placeholder for region
+	if containsPlaceholder(server) {
+		server = fmt.Sprintf(server, "na1")
+	} else {
+		// Append region to the end of the URL
+		server = strings.TrimSuffix(server, "/") + "/na1"
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
